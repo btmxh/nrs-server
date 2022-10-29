@@ -1,9 +1,7 @@
-import { compileFile } from "https://deno.land/x/pug@v0.1.3/mod.ts";
 import { readCSV } from "https://deno.land/x/csv@v0.7.5/mod.ts";
 import { readerFromStreamReader } from "https://deno.land/std@0.160.0/streams/mod.ts";
 
 const pattern = new URLPattern({ pathname: "/list" });
-const template = compileFile('views/list/index.pug');
 
 export async function listRoute(req: Request): Promise<Response | null> {
   const match = pattern.exec(req.url);
@@ -26,15 +24,42 @@ export async function listRoute(req: Request): Promise<Response | null> {
         rowData.push(col);
       }
     }
-    
-    const html = template({
-      fields: headers,
-      data: data
-    });
 
-    return new Response(html, {
+    return new Response(`
+        <html>
+        <head>
+          <title>NRS listing</title>
+          <meta charset='utf-8'>
+        </head>
+        <body>
+          <div id="container" style="height: 100%"></div>
+          <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.css">
+          <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+          <script>
+            setTimeout(() => {
+              let cont = document.getElementById('container')
+              cont.innerHtml = ''
+              cont.className = ''
+              Handsontable(cont, {
+                data: ${JSON.stringify(data)},
+                rowHeaders: true,
+                colHeaders: ${JSON.stringify(headers)},
+                columnSorting: true,
+                dropdownMenu: true,
+                filters: true,
+                width: '100%',
+                licenseKey: 'non-commercial-and-evaluation',
+                manualColumnResize: true,
+              })
+            }, 0);
+          </script>
+        </body>
+      </html>
+    `, {
       headers: {
-        "content-type": "text/html charset=utf-8"
+        "content-type": "text/html"
       }
     });
   }
