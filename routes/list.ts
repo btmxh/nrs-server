@@ -52,6 +52,7 @@ export async function listRoute(req: Request): Promise<Response | null> {
                 width: '100%',
                 licenseKey: 'non-commercial-and-evaluation',
                 manualColumnResize: true,
+                persistentState: true,
               })
             }, 0);
           </script>
