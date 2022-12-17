@@ -5,8 +5,11 @@ const pattern = new URLPattern({ pathname: "/list" });
 
 export async function listRoute(req: Request): Promise<Response | null> {
   const match = pattern.exec(req.url);
+  const url = new URL(req.url);
+  const params = url.searchParams;
+  const branch = params.get('branch') ?? "master";
   if(match) {
-    const csvRequest = new Request("https://github.com/ngoduyanh/nrs-impl-kt/releases/download/latest-master/nrs.csv");
+    const csvRequest = new Request(`https://github.com/ngoduyanh/nrs-impl-kt/releases/download/latest-${branch}/nrs.csv`);
     const csvResponse = await fetch(csvRequest);
     const csv = readCSV(readerFromStreamReader(csvResponse?.body?.getReader()!));
     const headers: string[] = [];
