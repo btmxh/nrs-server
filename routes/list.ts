@@ -4,20 +4,25 @@ import { readerFromStreamReader } from "https://deno.land/std@0.160.0/streams/mo
 const pattern = new URLPattern({ pathname: "/list" });
 
 export async function listRoute(req: Request): Promise<Response | null> {
+  const html = await Deno.readTextFile("routes/list.html");
   const match = pattern.exec(req.url);
   const url = new URL(req.url);
   const params = url.searchParams;
-  const branch = params.get('branch') ?? "master";
-  if(match) {
-    const csvRequest = new Request(`https://github.com/ngoduyanh/nrs-impl-kt/releases/download/latest-${branch}/nrs.csv`);
+  const branch = params.get("branch") ?? "master";
+  if (match) {
+    const csvRequest = new Request(
+      `https://github.com/ngoduyanh/nrs-impl-kt/releases/download/latest-${branch}/nrs.csv`
+    );
     const csvResponse = await fetch(csvRequest);
-    const csv = readCSV(readerFromStreamReader(csvResponse?.body?.getReader()!));
+    const csv = readCSV(
+      readerFromStreamReader(csvResponse?.body?.getReader()!)
+    );
     const headers: string[] = [];
     const data: string[][] = [];
     let isHeader = true;
     for await (const row of csv) {
       let rowData: string[] = [];
-      if(isHeader) {
+      if (isHeader) {
         rowData = headers;
         isHeader = false;
       } else {
@@ -28,43 +33,13 @@ export async function listRoute(req: Request): Promise<Response | null> {
       }
     }
 
-    return new Response(`
-        <html>
-        <head>
-          <title>NRS listing</title>
-          <meta charset='utf-8'>
-        </head>
-        <body>
-          <div id="container" style="height: 100%"></div>
-          <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.css">
-          <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
-          <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
-          <script>
-            setTimeout(() => {
-              let cont = document.getElementById('container')
-              cont.innerHtml = ''
-              cont.className = ''
-              Handsontable(cont, {
-                data: ${JSON.stringify(data)},
-                rowHeaders: true,
-                colHeaders: ${JSON.stringify(headers)},
-                columnSorting: true,
-                dropdownMenu: true,
-                filters: true,
-                width: '100%',
-                licenseKey: 'non-commercial-and-evaluation',
-                manualColumnResize: true,
-                persistentState: true,
-              })
-            }, 0);
-          </script>
-        </body>
-      </html>
-    `, {
+    const source = html
+      .replace("$DATA", JSON.stringify(data))
+      .replace("$HEADERS", JSON.stringify(headers));
+    return new Response(source, {
       headers: {
-        "content-type": "text/html"
-      }
+        "content-type": "text/html",
+      },
     });
   }
 

@@ -1,0 +1,183 @@
+<html>
+  <head>
+    <title>NRS listing</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <div id="preset">
+      <select name="preset" id="presetSelect"></select>
+      <button onclick="savePreset()">Save preset</button>
+      <input
+        type="text"
+        name="presetName"
+        id="presetName"
+        placeholder="Preset name"
+        autocapitalize="none"
+      />
+      <button onclick="deletePreset()">Delete preset</button>
+    </div>
+    <input
+      type="search"
+      id="searchBar"
+      placeholder="Select entries..."
+      autocapitalize="none"
+    />
+    <style>
+      #preset {
+        display: flex;
+        flex-direction: row;
+      }
+
+      #searchBar {
+        width: 100%;
+      }
+    </style>
+    <div id="container" style="height: 100%"></div>
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@11/dist/handsontable.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
+    <script>
+      let cont = document.getElementById("container");
+      cont.innerHtml = "";
+      cont.className = "";
+      const table = Handsontable(cont, {
+        data: $DATA,
+        rowHeaders: true,
+        colHeaders: $HEADERS,
+        columnSorting: true,
+        dropdownMenu: true,
+        filters: true,
+        search: true,
+        width: "100%",
+        licenseKey: "non-commercial-and-evaluation",
+        manualColumnResize: true,
+        persistentState: true,
+      });
+
+      const filters = table.getPlugin("Filters");
+      const searchBar = document.getElementById("searchBar");
+
+      function updateSearch() {
+        const searchValue = searchBar.value.trim();
+        if (searchValue.length == 0) {
+          filters.clearConditions();
+          filters.filter();
+          return;
+        }
+
+        const words = searchValue.split(" ");
+        const titleWords = words.filter((word) => !word.startsWith("id:"));
+        const idWords = words
+          .filter((word) => word.startsWith("id:"))
+          .map((word) => word.substring(3));
+
+        filters.clearConditions();
+        idWords.forEach((word) => filters.addCondition(0, "contains", [word]));
+        titleWords.forEach((word) =>
+          filters.addCondition(1, "contains", [word])
+        );
+        filters.filter();
+        console.debug(idWords, titleWords);
+      }
+
+      searchBar.addEventListener("input", updateSearch);
+
+      const presetSelect = document.getElementById("presetSelect");
+      document.body.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          document.activeElement.blur();
+          e.preventDefault();
+        }
+
+        if (e.target === document.body) {
+          if (e.key === "/") {
+            searchBar.focus();
+            e.preventDefault();
+          } else if (e.key === "p") {
+            presetSelect.focus();
+            e.preventDefault();
+          }
+        }
+      });
+
+      let presets = localStorage.getItem("presets");
+      const presetName = document.getElementById("presetName");
+      if (presets !== null) {
+        try {
+          presets = JSON.parse(presets);
+        } catch {
+          presets = { None: "" };
+        }
+      } else {
+        presets = { None: "" };
+      }
+
+      function addPreset(name) {
+        const option = document.createElement("option");
+        option.setAttribute("value", name);
+        const optionValue = document.createTextNode(name);
+        option.appendChild(optionValue);
+        presetSelect.appendChild(option);
+      }
+
+      function updateSearchBarPreset() {
+        localStorage.setItem("currentPreset", presetSelect.value);
+        searchBar.value = presets[presetSelect.value];
+        presetName.value = presetSelect.value;
+
+        updateSearch();
+      }
+
+      presetSelect.addEventListener("change", updateSearchBarPreset);
+
+      for (const presetName in presets) {
+        addPreset(presetName);
+      }
+
+      const currentPreset = localStorage.getItem("currentPreset");
+      if (currentPreset !== null && currentPreset in presets) {
+        presetSelect.value = currentPreset;
+        updateSearchBarPreset();
+      }
+
+      function savePreset() {
+        const name = presetName.value.trim();
+        if (name.length === 0) {
+          console.alert("Please enter the preset name to save.");
+          return;
+        }
+
+        if (name === "None") {
+          console.alert("Invalid preset name");
+        }
+
+        if (!(name in presets)) {
+          addPreset(name);
+        }
+
+        presets[name] = document.getElementById("searchBar").value;
+        presetSelect.value = name;
+        localStorage.setItem("presets", JSON.stringify(presets));
+      }
+
+      function deletePreset() {
+        const name = presetSelect.value;
+        if (name === "None") {
+          return;
+        }
+        delete presets[name];
+        const option = presetSelect.querySelector("option[value='" + name + "']");
+        if (option) {
+          option.remove();
+        }
+        presetSelect.value = "None";
+        localStorage.setItem("presets", JSON.stringify(presets));
+        updateSearchBarPreset();
+      }
+    </script>
+  </body>
+</html>
