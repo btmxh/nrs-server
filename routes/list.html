@@ -78,7 +78,7 @@
         filters.clearConditions();
         idWords.forEach((word) => filters.addCondition(0, "contains", [word]));
         titleWords.forEach((word) =>
-          filters.addCondition(1, "contains", [word])
+          filters.addCondition(2, "contains", [word])
         );
         filters.filter();
         console.debug(idWords, titleWords);
