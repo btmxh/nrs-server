@@ -10,9 +10,8 @@ export async function listRoute(req: Request): Promise<Response | null> {
   const params = url.searchParams;
   const branch = params.get("branch") ?? "master";
   if (match) {
-    const csvRequest = new Request(
-      `https://github.com/ngoduyanh/nrs-impl-kt/releases/download/latest-${branch}/nrs.csv`
-    );
+    const url = `https://github.com/btmxh/nrs-impl/releases/download/latest-${branch}/nrs.csv`;
+    const csvRequest = new Request(url);
     const csvResponse = await fetch(csvRequest);
     const csv = readCSV(
       readerFromStreamReader(csvResponse?.body?.getReader()!)
@@ -35,7 +34,8 @@ export async function listRoute(req: Request): Promise<Response | null> {
 
     const source = html
       .replace("$DATA", JSON.stringify(data))
-      .replace("$HEADERS", JSON.stringify(headers));
+      .replace("$HEADERS", JSON.stringify(headers))
+      .replace("$URL", url);
     return new Response(source, {
       headers: {
         "content-type": "text/html",
